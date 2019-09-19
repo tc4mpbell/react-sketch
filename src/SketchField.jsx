@@ -11,6 +11,7 @@ import Arrow from './arrow';
 import Rectangle from './rectangle';
 import Circle from './circle';
 import Pan from './pan';
+import Polygon from './polygon'
 import Tool from './tools';
 import RectangleLabel from './rectangle-label';
 import DefaultTool from './defaul-tool';
@@ -120,6 +121,7 @@ class SketchField extends PureComponent {
     this._tools[Tool.Circle] = new Circle(fabricCanvas);
     this._tools[Tool.Pan] = new Pan(fabricCanvas);
     this._tools[Tool.DefaultTool] = new DefaultTool(fabricCanvas);
+    this._tools[Tool.Polygon] = new Polygon(fabricCanvas);
   };
 
   /**
