@@ -5,30 +5,40 @@ import FabricCanvasTool from "./fabrictool";
 const fabric = require("fabric").fabric;
 
 class Polygon extends FabricCanvasTool {
+  makePathStr() {
+    let pathArr = ["M", this.points[0][0], this.points[0][1]];
+    this.points.forEach((pt, ix) => {
+      if (ix == 0) return;
+      pathArr.push("L");
+      pathArr.push(pt[0]);
+      pathArr.push(pt[1]);
+    });
+
+    if (this._tempPts.length >= 0) {
+      pathArr.push("L");
+      pathArr.push(this._tempPts[0]);
+      pathArr.push(this._tempPts[1]);
+    }
+
+    pathArr.push("z");
+
+    return pathArr.join(" ");
+  }
+
   constructor(props) {
     super(props);
 
     this.points = [];
+    this._tempPts = []; // stores the temp endpt when moving the mouse around while drawing
+    this._path = null;
 
-    fabric.util.addListener(window, "dblclick", () => {
-      this._lines.push(this.line);
-      this.line = null;
+    fabric.util.addListener(window, "dblclick", () => this.finishPath());
+  }
 
-      //create path from this.points
-
-      let pathStr = `M ${this.points[0][0]} ${this.points[0][1]}`;
-      this.points.forEach((pt, ix) => {
-        if (ix == 0) return;
-        pathStr += ` L ${pt[0]} ${pt[1]} `;
-      });
-
-      let path = new fabric.Path(pathStr + " z");
-      path.set({ fill: "red", stroke: "green", opacity: 0.5 });
-
-      this._canvas.add(path);
-
-      this.points = [];
-    });
+  finishPath() {
+    this.points = [];
+    this._tempPts = [];
+    this._path = null;
   }
 
   configureCanvas(props) {
@@ -37,59 +47,48 @@ class Polygon extends FabricCanvasTool {
     canvas.forEachObject(o => (o.selectable = o.evented = false));
     this._width = props.lineWidth;
     this._color = props.lineColor;
-
-    // canvas.add(this.path);
-
-    this._lines = [];
-
-    this._lineCounter = 0;
+    this._fill = props.fillColor;
   }
 
   doMouseDown(o) {
-    // capture starting point
-    // draw line between SP and current
-    // mousedown: capture endpoint, push line to lines array
-    // start new line.
-
-    // array of points
-    // when click, add to array of points
-    // draw line
-    // when dblclick, draw path over points
-    // erase lines
-
-    if (this.line) {
-      this._lines.push(this.line);
-      this.line = null;
-    }
-
     this.isDown = true;
     let canvas = this._canvas;
     var pointer = canvas.getPointer(o.e);
-    var points = [pointer.x, pointer.y, pointer.x, pointer.y];
-    this.line = new fabric.Line(points, {
-      strokeWidth: this._width,
-      fill: this._color,
-      stroke: this._color,
-      originX: "center",
-      originY: "center",
-      selectable: false,
-      evented: false
-    });
 
     this.points.push([pointer.x, pointer.y]);
-    console.log("Added line", [pointer.x, pointer.y], this.points);
 
-    canvas.add(this.line);
+    if (this._path) {
+      canvas.remove(this._path);
+    }
+
+    this._path = new fabric.Path(this.makePathStr());
+    this._path.set({
+      fill: this._fill,
+      strokeWidth: this._width,
+      stroke: this._color
+      // opacity: 0.5
+    });
+    canvas.add(this._path);
   }
 
   doMouseMove(o) {
-    // if (!this.isDown) return;
-    if (!this.line) return;
+    if (!this._path) return;
 
     let canvas = this._canvas;
     var pointer = canvas.getPointer(o.e);
-    this.line.set({ x2: pointer.x, y2: pointer.y });
-    this.line.setCoords();
+
+    this._tempPts = [pointer.x, pointer.y];
+
+    canvas.remove(this._path);
+
+    this._path = new fabric.Path(this.makePathStr());
+    this._path.set({
+      fill: this._fill,
+      strokeWidth: this._width,
+      stroke: this._color
+    });
+    canvas.add(this._path);
+
     canvas.renderAll();
   }
 
@@ -98,6 +97,7 @@ class Polygon extends FabricCanvasTool {
   }
 
   doMouseOut(o) {
+    // this.finishPath();
     this.isDown = false;
   }
 }
